@@ -1,7 +1,7 @@
 import pickle
 import numpy as np
 import os
-from collections import Counter
+from collections import Counter, defaultdict
 
 MODEL_PATH = os.path.join("models", "ids_multi_model.pkl")
 
@@ -15,6 +15,7 @@ label_encoder = artifacts["label_encoder"]
 feature_names = artifacts["feature_names"]
 
 EXPECTED = len(feature_names)
+CLASS_NAMES = list(label_encoder.classes_)
 
 def normalize_features(features):
     features = list(map(float, features))
@@ -26,28 +27,42 @@ def normalize_features(features):
 
 def predict_intrusion(features):
     features = normalize_features(features)
-
     x = np.array(features).reshape(1, -1)
     x = scaler.transform(x)
 
-    predictions = {}
+    individual = {}
+    prob_accumulator = defaultdict(float)
 
     for name, model in models.items():
-        pred = model.predict(x)
-        label = label_encoder.inverse_transform(pred)[0]
-        predictions[name] = label
+        pred = model.predict(x)[0]
+        label = label_encoder.inverse_transform([pred])[0]
 
-    majority_vote = Counter(predictions.values()).most_common(1)[0][0]
+        if hasattr(model, "predict_proba"):
+            probs = model.predict_proba(x)[0]
+        else:
+            probs = np.zeros(len(CLASS_NAMES))
+            probs[pred] = 1.0
 
-    weighted_scores = {}
-    for model_name, label in predictions.items():
-        weighted_scores[label] = weighted_scores.get(label, 0) + accuracies[model_name]
+        confidence = float(max(probs))
 
-    weighted_vote = max(weighted_scores, key=weighted_scores.get)
+        individual[name] = {
+            "label": label,
+            "confidence": round(confidence, 4)
+        }
+
+        for i, cls in enumerate(CLASS_NAMES):
+            prob_accumulator[cls] += probs[i] * accuracies[name]
+
+    total_weight = sum(accuracies.values())
+    weighted_probs = {k: round(v / total_weight, 4) for k, v in prob_accumulator.items()}
+
+    weighted_label = max(weighted_probs, key=weighted_probs.get)
 
     return {
-        "individual_predictions": predictions,
-        "majority_voting": majority_vote,
-        "weighted_voting": weighted_vote,
-        "features_used": EXPECTED
+        "individual_predictions": individual,
+        "weighted_voting": {
+            "label": weighted_label,
+            "confidence": weighted_probs[weighted_label],
+            "probabilities": weighted_probs
+        }
     }
