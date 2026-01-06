@@ -8,6 +8,7 @@ with open("models/ids_multi_model.pkl", "rb") as f:
     artifacts = pickle.load(f)
 
 feature_names = artifacts["feature_names"]
+EXPECTED = len(feature_names)
 accuracies = artifacts["accuracies"]
 
 st.set_page_config(page_title="IDS Voting Dashboard", layout="wide")
@@ -20,30 +21,45 @@ for model, acc in accuracies.items():
 st.divider()
 st.subheader("Input Network Traffic Features")
 
-features = []
-for name in feature_names:
-    features.append(st.number_input(name, value=0.0))
+st.subheader("Expected Features")
+st.write(", ".join(feature_names))
+
+st.divider()
+st.subheader("Enter Feature Values")
+
+input_text = st.text_area(
+    "Comma-separated feature values",
+    placeholder="e.g. 12, 0.4, 89, 1024, 0, 0.3 ..."
+)
+
+def parse_input(text):
+    if not text.strip():
+        return []
+    return [float(x.strip()) for x in text.split(",") if x.strip()]
 
 if st.button("Predict"):
-    payload = {"features": features}
-
     try:
-        response = requests.post(API_URL, json=payload, timeout=10)
+        features = parse_input(input_text)
+
+        response = requests.post(
+            API_URL,
+            json={"features": features},
+            timeout=10
+        )
 
         if response.status_code == 200:
             result = response.json()
 
-            st.divider()
-            st.subheader("Individual Model Predictions")
+            st.success(f"Features used: {result['features_used']}")
 
+            st.subheader("Individual Model Predictions")
             for model, pred in result["individual_predictions"].items():
                 st.write(f"{model}: {pred}")
-                
+
             def color_label(label):
                 if label.upper() == "BENIGN":
-                    return f"<h2 style='color: #00c853;'>{label}</h2>"
-                else:
-                    return f"<h2 style='color: #ff1744;'>{label}</h2>"
+                    return f"<h2 style='color: #00c853'>{label}</h2>"
+                return f"<h2 style='color: #ff1744'>{label}</h2>"
 
             st.divider()
             st.subheader("Final Decision")
@@ -63,3 +79,5 @@ if st.button("Predict"):
 
     except Exception as e:
         st.error(f"Connection error: {e}")
+
+

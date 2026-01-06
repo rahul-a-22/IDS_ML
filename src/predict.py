@@ -16,9 +16,16 @@ feature_names = artifacts["feature_names"]
 
 EXPECTED = len(feature_names)
 
+def normalize_features(features):
+    features = list(map(float, features))
+    if len(features) < EXPECTED:
+        features.extend([0.0] * (EXPECTED - len(features)))
+    elif len(features) > EXPECTED:
+        features = features[:EXPECTED]
+    return features
+
 def predict_intrusion(features):
-    if len(features) != EXPECTED:
-        raise ValueError(f"Expected {EXPECTED} features, got {len(features)}")
+    features = normalize_features(features)
 
     x = np.array(features).reshape(1, -1)
     x = scaler.transform(x)
@@ -41,5 +48,6 @@ def predict_intrusion(features):
     return {
         "individual_predictions": predictions,
         "majority_voting": majority_vote,
-        "weighted_voting": weighted_vote
+        "weighted_voting": weighted_vote,
+        "features_used": EXPECTED
     }
