@@ -1,124 +1,69 @@
 # IDS_ML
 
-> 🚨 Intrusion Detection System (IDS) using ensemble voting of scikit-learn + XGBoost models.
+> Lightweight Intrusion Detection System (IDS) using an ensemble of scikit-learn and XGBoost models.
 
-## 🔍 Overview
-
-**IDS_ML** trains several classifiers on network traffic features and combines their predictions via majority and weighted voting to detect intrusions. The repo includes scripts for training (`src/train.py`), inference (`src/predict.py`), a Flask API (`api/app.py`), and a Streamlit dashboard (`ui/dashboard.py`).
-
----
-
-## ✅ Features
-
-- Multiple classifiers: RandomForest, ExtraTrees, DecisionTree, XGBoost
-- Standardized preprocessing and label encoding
-- Majority and weighted voting aggregation
-- REST API for predictions and a Streamlit dashboard for interaction
+## Summary
+A compact toolkit to train and serve an ensemble-based intrusion detection model. Includes training scripts, a prediction helper, a Flask API, and a Streamlit dashboard for quick testing and visualization.
 
 ---
 
-## 📁 Repository Structure
-
-```
-.
-├─ api/
-│  └─ app.py            # Flask API for model predictions
-├─ data/                # Sample datasets (CSV)
-├─ models/              # Trained model artifacts (ids_multi_model.pkl)
-├─ src/
-│  ├─ train.py          # Train models and save artifacts
-│  └─ predict.py        # Prediction helper (used by API & dashboard)
-├─ ui/
-│  └─ dashboard.py      # Streamlit dashboard
-├─ requirements.txt
-├─ input.json           # Example input for API or testing
-└─ README.md
-```
-
----
-
-## 🚀 Quickstart
-
-### Prerequisites
-- Python 3.9+ recommended
-- Git
-- (Optional) Create a virtual environment
-
-### Setup
+## Quickstart
+1. Clone and prepare a virtual environment
 ```bash
-# create & activate venv (Windows)
+git clone <repo-url>
+cd IDS
 python -m venv venv
 venv\Scripts\activate
 pip install -r requirements.txt
 ```
 
-### Train models
+2. Train the models
 ```bash
 python src/train.py
 ```
-- Outputs: `models/ids_multi_model.pkl` (contains models, scaler, label encoder, accuracies)
+This creates `models/ids_multi_model.pkl` (models, scaler, label encoder, and metrics).
 
-### Predict (programmatically)
-```python
-from src.predict import predict_intrusion
-
-# features must be a list/array with the same length as the training features
-features = [0.0, 1.2, ...]
-result = predict_intrusion(features)
-print(result)
-```
-
-### Start the API
+3. Run the API
 ```bash
 python api/app.py
 ```
-- POST JSON to `http://127.0.0.1:5000/predict` with body: `{ "features": [ ... ] }`
+Send POST requests to `http://127.0.0.1:5000/predict` with JSON `{ "features": [ ... ] }`.
 
-### Launch the dashboard
+4. Open the dashboard (optional)
 ```bash
 streamlit run ui/dashboard.py
 ```
-- Ensure the API is running; the dashboard sends requests to `/predict`.
+The dashboard interacts with the running API to display predictions.
 
 ---
 
-## 💡 Tips & Notes
-- The `models/ids_multi_model.pkl` file is included by default in this repo, but consider using large-file storage or external model registry for bigger artifacts.
-- `src/train.py` prints and stores model accuracies in the pickle for use in the UI.
-
----
-
-## ⚠️ Recommended `.gitignore`
-
-```
-# Python
-venv/
-__pycache__/
-*.pyc
-
-# Notebook
-.ipynb_checkpoints/
-
-# Models & data
-models/*.pkl
-data/
-
-# OS / IDE
-.DS_Store
-*.log
-
-# Environment
-.env
+## Usage example (Python)
+```python
+from src.predict import predict_intrusion
+features = [0.0, 1.2, ...]  # same feature order used in training
+print(predict_intrusion(features))
 ```
 
 ---
 
-## 🤝 Contributing
-PRs and issues are welcome. Please add tests or small incremental changes and follow clear commit messages.
-
-## 📄 License
-Add a license file to clarify usage (e.g., MIT).
+## Project layout
+- `src/` — training and prediction utilities (`train.py`, `predict.py`)
+- `api/` — lightweight Flask server (`app.py`)
+- `ui/` — Streamlit dashboard (`dashboard.py`)
+- `data/` — example CSV datasets
+- `models/` — saved model artifacts
 
 ---
 
-If you want, I can also create the `.gitignore` file now and stage these edits for commit — shall I proceed?
+## Notes
+- Use Python 3.9+ and a virtual environment.
+- Consider moving large model files to an external registry for production.
+
+---
+
+## Contributing & License
+Contributions welcome — please open issues or PRs. Add a `LICENSE` file (e.g., MIT) to specify reuse terms.
+
+---
+
+Need any additional sections (examples, badges, or setup for Docker/GitHub Actions)? I can add them.
