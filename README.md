@@ -35,6 +35,11 @@ streamlit run ui/dashboard.py
 ```
 The dashboard interacts with the running API to display predictions.
 
+5. Test on Terminal
+```bash
+curl -X POST http://127.0.0.1:5000/predict -H "Content-Type: application/json" -d @input.json
+
+```
 ---
 
 ## Usage example (Python)
