@@ -47,7 +47,7 @@ print(predict_intrusion(features))
 ---
 
 ## Project layout
-- `src/` — training and prediction utilities (`train.py`, `predict.py`)
+- `src/` — preprocessing, training and prediction utilities (`preprocess.py`, `train.py`, `predict.py`)
 - `api/` — lightweight Flask server (`app.py`)
 - `ui/` — Streamlit dashboard (`dashboard.py`)
 - `data/` — example CSV datasets
@@ -61,9 +61,6 @@ print(predict_intrusion(features))
 
 ---
 
-## Contributing & License
-Contributions welcome — please open issues or PRs. Add a `LICENSE` file (e.g., MIT) to specify reuse terms.
-
+## Contributing 
+Contributions welcome — please open issues or PRs. 
 ---
-
-Need any additional sections (examples, badges, or setup for Docker/GitHub Actions)? I can add them.
