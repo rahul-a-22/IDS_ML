@@ -1,71 +1,168 @@
-# IDS_ML
+# Intrusion Detection System using Ensemble Learning
 
-> Lightweight Intrusion Detection System (IDS) using an ensemble of scikit-learn and XGBoost models.
+This project implements a lightweight yet effective Intrusion Detection System (IDS) that leverages an ensemble of machine learning models to identify network intrusions. It includes scripts for training, a Flask API for serving predictions, and a Streamlit dashboard for real-time interaction and visualization.
 
-## Summary
-A compact toolkit to train and serve an ensemble-based intrusion detection model. Includes training scripts, a prediction helper, a Flask API, and a Streamlit dashboard for quick testing and visualization.
+## Features
 
----
+- **Ensemble-Based Model**: Combines predictions from multiple models (RandomForest, ExtraTrees, DecisionTree, and XGBoost) for higher accuracy and robustness.
+- **Weighted Voting**: Uses a weighted voting mechanism based on model accuracies to make final predictions.
+- **REST API**: A simple Flask API to serve predictions.
+- **Interactive Dashboard**: A Streamlit dashboard to visualize predictions and model performance.
+- **Batch Prediction**: A script to make predictions on a large dataset from a CSV file.
+- **Modular Design**: The project is structured into separate modules for training, prediction, and serving, making it easy to extend and maintain.
 
-## Quickstart
-1. Clone and prepare a virtual environment
-```bash
-git clone <repo-url>
-cd IDS
-python -m venv venv
-venv\Scripts\activate
-pip install -r requirements.txt
+## System Architecture
+
+The system is composed of three main components:
+
+1.  **Training Pipeline**: The `src/train.py` script loads the training data, preprocesses it, trains the models, and saves the trained models and artifacts to a pickle file.
+2.  **Flask API**: The `api/app.py` script loads the saved models and provides a `/predict` endpoint to make predictions on new data.
+3.  **Streamlit Dashboard**: The `ui/dashboard.py` script provides a user-friendly interface to interact with the API and visualize the predictions.
+
+```
++-----------------+      +-----------------+      +---------------------+
+|                 |----->|                 |----->|                     |
+| Training        |      | Model Artifacts |      | Flask API           |
+| (src/train.py)  |      | (models/*.pkl)  |      | (api/app.py)        |
+|                 |<-----|                 |<-----|                     |
++-----------------+      +-----------------+      +----------+----------+
+                                                              |
+                                                              |
+                                                     +--------v--------+
+                                                     |                 |
+                                                     | Streamlit       |
+                                                     | Dashboard       |
+                                                     | (ui/dashboard.py)|
+                                                     |                 |
+                                                     +-----------------+
 ```
 
-2. Train the models
+## Getting Started
+
+### Prerequisites
+
+- Python 3.9+
+- A virtual environment tool (e.g., `venv`)
+
+### Installation
+
+1.  Clone the repository:
+    ```bash
+    git clone https://github.com/your-username/IDS_ML.git
+    cd IDS_ML
+    ```
+2.  Create and activate a virtual environment:
+    ```bash
+    python -m venv venv
+    source venv/bin/activate  # On Windows, use `venv\Scripts\activate`
+    ```
+3.  Install the dependencies:
+    ```bash
+    pip install -r requirements.txt
+    ```
+
+## Usage
+
+### 1. Model Training
+
+To train the models, run the following command:
+
 ```bash
 python src/train.py
 ```
-This creates `models/ids_multi_model.pkl` (models, scaler, label encoder, and metrics).
 
-3. Run the API
+This will create a `models/ids_multi_model.pkl` file containing the trained models, scaler, label encoder, and feature names.
+
+### 2. Running the Application
+
+To run the Flask API and the Streamlit dashboard simultaneously, use the `run_app.py` script:
+
 ```bash
-python api/app.py
+python run_app.py
 ```
-Send POST requests to `http://127.0.0.1:5000/predict` with JSON `{ "features": [ ... ] }`.
 
-4. Open the dashboard (optional)
+This will start the Flask API on `http://127.0.0.1:5000` and the Streamlit dashboard on `http://localhost:8501`.
+
+### 3. API
+
+The Flask API has a single endpoint:
+
+- **POST /predict**
+
+  This endpoint accepts a JSON object with a `features` key, which should be a list of numerical feature values.
+
+  **Example Request:**
+
+  ```bash
+  curl -X POST http://127.0.0.1:5000/predict -H "Content-Type: application/json" -d '{"features": [0.0, 1.2, ...]}'
+  ```
+
+  **Example Response:**
+
+  ```json
+  {
+    "individual_predictions": {
+      "RandomForest": {
+        "label": "BENIGN",
+        "confidence": 0.98
+      },
+      ...
+    },
+    "weighted_voting": {
+      "label": "BENIGN",
+      "confidence": 0.99,
+      "probabilities": {
+        "BENIGN": 0.99,
+        "ATTACK": 0.01
+      }
+    }
+  }
+  ```
+
+### 4. Dashboard
+
+The Streamlit dashboard provides a user-friendly interface to interact with the API. You can enter the feature values in a text area and get the predictions in real-time.
+
+### 5. Batch Prediction
+
+To make predictions on a batch of data from a CSV file, use the `src/batch_predict.py` script.
+
 ```bash
-streamlit run ui/dashboard.py
-```
-The dashboard interacts with the running API to display predictions.
-
-5. Test on Terminal
-```bash
-curl -X POST http://127.0.0.1:5000/predict -H "Content-Type: application/json" -d @input.json
-
-```
----
-
-## Usage example (Python)
-```python
-from src.predict import predict_intrusion
-features = [0.0, 1.2, ...]  # same feature order used in training
-print(predict_intrusion(features))
+python src/batch_predict.py
 ```
 
----
+This script will read the data from `data/test.csv`, make predictions, and save the results to `data/test_output.csv`.
 
-## Project layout
-- `src/` — preprocessing, training and prediction utilities (`preprocess.py`, `train.py`, `predict.py`)
-- `api/` — lightweight Flask server (`app.py`)
-- `ui/` — Streamlit dashboard (`dashboard.py`)
-- `data/` — example CSV datasets
-- `models/` — saved model artifacts
+## Project Structure
 
----
+```
+.
+├── api
+│   └── app.py              # Flask API for serving predictions
+├── data
+│   ├── CICIDS2017_sample.csv # Sample training data
+│   └── test.csv            # Sample batch prediction data
+├── models
+│   └── ids_multi_model.pkl # Saved model artifacts
+├── src
+│   ├── batch_predict.py    # Script for batch prediction
+│   ├── predict.py          # Prediction logic
+│   ├── preprocess.py       # Data preprocessing utilities
+│   └── train.py            # Model training script
+├── ui
+│   └── dashboard.py        # Streamlit dashboard
+├── .gitignore
+├── input.json
+├── MTH_IDS_IoTJ.ipynb
+├── README.md
+├── requirements.txt
+└── run_app.py              # Main script to run the application
+```
 
-## Notes
-- Use Python 3.9+ and a virtual environment.
-- Consider moving large model files to an external registry for production.
+## Contributing
 
----
+Contributions are welcome! Please feel free to open an issue or submit a pull request.
 
-## Contributing 
-Contributions welcome — please open issues or PRs. 
----
+## License
+
+This project is licensed under the MIT License. See the `LICENSE` file for more details.
