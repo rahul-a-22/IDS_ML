@@ -9,8 +9,9 @@ with open("models/ids_multi_model.pkl", "rb") as f:
     artifacts = pickle.load(f)
 
 feature_names = artifacts["feature_names"]
+EXPECTED = len(feature_names)
 
-st.set_page_config(page_title="IDS Voting Dashboard", layout="wide")
+st.set_page_config(page_title="IDS Dashboard", layout="wide")
 st.title("🚨 Intrusion Detection System")
 
 st.subheader("Expected Features (Order Matters)")
@@ -20,7 +21,7 @@ st.divider()
 st.subheader("Input Features")
 
 input_text = st.text_area(
-    "Enter comma-separated feature values",
+    f"Enter comma-separated feature values (up to {EXPECTED})",
     placeholder="e.g. 12, 0.4, 89, 1024, 0, 0.3"
 )
 
@@ -30,7 +31,11 @@ def parse_input(text):
     return [float(x.strip()) for x in text.split(",") if x.strip()]
 
 def label_color(label):
-    return "#00c853" if label.upper() == "BENIGN" else "#ff1744"
+    if label == "BENIGN":
+        return "#00c853"
+    if label == "ZERO_DAY_ATTACK":
+        return "#d50000"
+    return "#ff1744"
 
 def confidence_color(conf):
     if conf >= 0.8:
@@ -54,6 +59,7 @@ if st.button("Predict"):
         else:
             result = response.json()
 
+            # ---------------- Individual Models ----------------
             st.divider()
             st.subheader("Individual Model Predictions")
 
@@ -71,49 +77,61 @@ if st.button("Predict"):
                     unsafe_allow_html=True
                 )
 
+            # ---------------- Final Decision ----------------
             st.divider()
             st.subheader("Final Decision")
 
-            col1, col2 = st.columns(2)
+            decision = result["final_decision"]
 
-            with col1:
-                st.markdown("**Majority Voting**")
-                if "majority_voting" in result:
-                    label = result["majority_voting"]["label"]
-                else:
-                    label = result["weighted_voting"]["label"]
+            st.markdown(
+                f"""
+                <h1 style="color:{label_color(decision['label'])};">
+                    {decision['label']}
+                </h1>
+                <h4 style="color:{confidence_color(decision['confidence'])};">
+                    Confidence: {decision['confidence']}
+                </h4>
+                """,
+                unsafe_allow_html=True
+            )
 
-                st.markdown(
-                    f"""<h2 style='color:{label_color(label)};'>{label}</h2>""",
-                    unsafe_allow_html=True
-                )
+            if result["type"] == "anomaly":
+                st.error("⚠️ Zero-Day / Unknown Attack Detected")
 
-            with col2:
-                st.markdown("**Weighted Voting**")
+            # ---------------- Weighted Voting ----------------
+            st.divider()
+            st.subheader("Weighted Voting Probabilities")
+
+            probs = result["weighted_voting"]["probabilities"]
+
+            df_probs = pd.DataFrame({
+                "Class": list(probs.keys()),
+                "Probability": list(probs.values())
+            }).sort_values("Probability", ascending=False)
+
+            st.bar_chart(df_probs.set_index("Class"))
+
+            # ---------------- CL-KMeans Visualization ----------------
+            if result["type"] == "anomaly" and "cluster_info" in result:
+                st.divider()
+                st.subheader("🚨 Cluster Distance Analysis (Zero-Day Detection)")
+
+                cluster_info = result["cluster_info"]
+
                 st.markdown(
                     f"""
-                    <h2 style="color:{label_color(result['weighted_voting']['label'])};">
-                        {result['weighted_voting']['label']}
-                    </h2>
-                    <span style="color:{confidence_color(result['weighted_voting']['confidence'])};">
-                        Confidence: {result['weighted_voting']['confidence']}
-                    </span>
-                    """,
-                    unsafe_allow_html=True
+                    **Assigned Cluster:** {cluster_info['cluster']}  
+                    **Distance to Cluster Center:** {cluster_info['distance']:.4f}  
+                    **Anomaly Threshold:** {cluster_info['threshold']:.4f}
+                    """
                 )
 
-            if "probabilities" in result["weighted_voting"]:
-                st.divider()
-                st.subheader("Prediction Probability Distribution")
+                df_dist = pd.DataFrame({
+                    "Cluster": list(range(len(cluster_info["all_distances"]))),
+                    "Distance": cluster_info["all_distances"]
+                })
 
-                probs = result["weighted_voting"]["probabilities"]
-
-                df_probs = pd.DataFrame({
-                    "Class": list(probs.keys()),
-                    "Probability": list(probs.values())
-                }).sort_values("Probability", ascending=False)
-
-                st.bar_chart(df_probs.set_index("Class"))
+                st.bar_chart(df_dist.set_index("Cluster"))
 
     except Exception as e:
         st.error(f"Invalid input: {e}")
