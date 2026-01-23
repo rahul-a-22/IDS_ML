@@ -1,4 +1,4 @@
-
+# Intrusion Detection System using Ensemble Learning
 
 This project implements a lightweight yet effective Intrusion Detection System (IDS) that leverages an ensemble of machine learning models to identify network intrusions. It includes scripts for training, a Flask API for serving predictions, and a Streamlit dashboard for real-time interaction and visualization.
 
